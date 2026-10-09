@@ -77,3 +77,18 @@ You should check the following settings (or their corresponding environment vari
 - `urlAddPort` (env: `CMD_URL_ADDPORT`)
 
 Check [the reverse proxy guide](guides/reverse-proxy.md#configure-asset-link-generation) for an explanation.
+
+## How do I find a note that is missing from my history?
+
+The **Notes** tab on the start page lists every note you are allowed to see,
+separated into *Your notes* and *Other visible notes*. It is the place to find
+notes that dropped out of your history (for example after clearing the browser
+storage, or when they were created on another device): notes you own that are
+not part of your history are marked with a *Not in history* badge and can be
+opened from the listing like any other note.
+
+The lists are sorted by their last update (newest first) and can be re-sorted
+by clicking the *Title* or *Updated* column headers; long lists are paginated.
+As the owner of a note you can also delete it right from the listing with the
+trash-can button in its row — the note is gone for every collaborator
+immediately, so use with care.

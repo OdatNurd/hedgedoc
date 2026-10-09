@@ -28,6 +28,9 @@ require('../css/highlightjs.css')
 // night mode, shared with the editor through the same stored preference
 function applyNightMode (enabled) {
   $(document.body).toggleClass('night', enabled)
+  // mirror the class on the html element, where the pre-paint inline script
+  // set it so the dark canvas is there from the first paint
+  $(document.documentElement).toggleClass('night', enabled)
   $('.ui-infobar .ui-night').toggleClass('active', enabled)
 }
 

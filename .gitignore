@@ -18,6 +18,8 @@ backups/
 
 # ignore config files
 config.json
+# ...but the container runtime config is build input and must be versioned
+!resources/config.json
 .sequelizerc
 
 # ignore webpack build

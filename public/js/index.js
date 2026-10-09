@@ -584,6 +584,17 @@ function fencedCodeBlock (language, content) {
   return fence + language + '\n' + body + fence + '\n'
 }
 
+// quote a scalar for a YAML frontmatter line
+function yamlQuote (value) {
+  return (
+    '"' +
+    String(value)
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"') +
+    '"'
+  )
+}
+
 // editor settings
 const textit = document.getElementById('textit')
 if (!textit) {
@@ -750,11 +761,12 @@ $(document).ready(function () {
   }
 
   // night mode is the default when no preference has been stored yet;
-  // an explicit stored value (true/false) always wins
-  if (store.get('nightMode') !== false) {
-    $body.addClass('night')
-    ui.toolbar.night.addClass('active')
-  }
+  // an explicit stored value (true/false) always wins; the class is mirrored
+  // on the html element where the pre-paint inline script already set it
+  const nightModeActive = store.get('nightMode') !== false
+  $body.toggleClass('night', nightModeActive)
+  $(document.documentElement).toggleClass('night', nightModeActive)
+  ui.toolbar.night.toggleClass('active', nightModeActive)
 
   // showup
   $().showUp('.navbar', {
@@ -962,6 +974,7 @@ function checkEditorStyle () {
     })
     ui.area.resize.handle.append(ui.area.resize.syncToggle)
     ui.area.resize.syncToggle.hide()
+    updateSyncToggleState()
     ui.area.resize.handle.hover(
       function () {
         ui.area.resize.syncToggle.stop(true, true).delay(200).fadeIn(100)
@@ -992,6 +1005,20 @@ function checkSyncToggle () {
       .removeClass('fa-link')
       .addClass('fa-unlink')
   }
+  updateSyncToggleState()
+}
+
+// make the state of the sync-scroll toggle visible: pressed look plus a
+// tooltip that says what clicking will do
+function updateSyncToggleState () {
+  ui.area.resize.syncToggle
+    .toggleClass('active', appState.syncscroll)
+    .attr(
+      'title',
+      appState.syncscroll
+        ? 'Sync scrolling is on - click to scroll both panes independently'
+        : 'Sync scrolling is off - click to scroll both panes together'
+    )
 }
 
 const checkEditorScrollbar = _.debounce(function () {
@@ -1201,6 +1228,11 @@ function changeMode (type) {
     ui.area.edit.css('width', '')
     ui.area.resize.handle.hide()
   }
+
+  // the permission control exists twice (view infobar and editor toolbar);
+  // when both panes are visible the view copy is shown, so keep the toolbar
+  // copy for pure edit mode only
+  $('.toolbar .ui-permission').toggle(appState.currentMode === modeType.edit)
 
   windowResizeInner()
 
@@ -1925,22 +1957,48 @@ $('#gistImportModalConfirm').click(function () {
       ui.spinner.show()
       $.get(serverurl + '/gist/' + gistId)
         .done(function (data) {
-          if (data.files) {
-            let contents = ''
-            Object.keys(data.files).forEach(function (key) {
-              // the import proxy returns plain strings, the raw GitHub API
-              // returns objects with a content property
+          const names = data.files ? Object.keys(data.files) : []
+          if (names.length > 0) {
+            // the gist description doubles as its name on GitHub; the first
+            // line becomes the note title and the rest is prose above the files
+            const description = String(data.description || '').trim()
+            const title = description
+              ? description.split('\n')[0].trim()
+              : names[0]
+            let contents = '---\n'
+            contents += 'title: ' + yamlQuote(title) + '\n'
+            contents += '---\n\n'
+            if (description) {
+              contents += description + '\n\n'
+            }
+            names.forEach(function (key) {
+              // the import proxy returns objects with a content property and
+              // may flag binary files, which are not inserted as code
               const file = data.files[key]
-              const raw = typeof file === 'string' ? file : (file && file.content) || ''
-              const lang = languageForFile(key)
+              const meta = typeof file === 'object' && file ? file : {}
+              const raw = typeof file === 'string' ? file : meta.content || ''
+              const rawUrl = meta.rawUrl || ''
               contents += '## ' + key + '\n\n'
-              if (raw && lang === 'markdown') {
-                // markdown files are inserted as-is
-                contents += /\n$/.test(raw) ? raw : raw + '\n'
+              if (meta.image && rawUrl) {
+                // images are linked to their raw content instead of inlined
+                contents += '![' + key + '](' + rawUrl + ')\n\n'
+              } else if (meta.binary) {
+                contents +=
+                  '*' +
+                  key +
+                  ' is a binary file' +
+                  (rawUrl ? ' - [view it online](' + rawUrl + ')' : '') +
+                  '*\n\n'
               } else {
-                contents += fencedCodeBlock(lang, raw)
+                const lang = languageForFile(key)
+                if (raw && lang === 'markdown') {
+                  // markdown files are inserted as-is
+                  contents += /\n$/.test(raw) ? raw : raw + '\n'
+                } else {
+                  contents += fencedCodeBlock(lang, raw)
+                }
+                contents += '\n'
               }
-              contents += '\n'
             })
             replaceAll(contents)
           } else {
@@ -2296,6 +2354,7 @@ function toggleNightMode () {
   // same resolution as on startup: unset means night mode is active
   const isActive = store.get('nightMode') !== false
   $body.toggleClass('night', !isActive)
+  $(document.documentElement).toggleClass('night', !isActive)
   ui.toolbar.night.toggleClass('active', !isActive)
   store.set('nightMode', !isActive)
 }

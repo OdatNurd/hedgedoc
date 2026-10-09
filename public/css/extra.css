@@ -89,7 +89,10 @@ iframe.github-gist-frame {
     display: none;
 }
 
-/* night mode, shared between the editor and the published view */
+/* night mode, shared between the editor and the published view; the html
+   element carries the class before the first paint (pre-paint inline script)
+   and the body as soon as the app applies the preference */
+html.night,
 body.night {
     background: #333 !important;
     color: #ededed;

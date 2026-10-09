@@ -94,10 +94,11 @@ $('.masthead-nav li').click(function () {
   $(this).addClass('active')
 })
 
-// notes tab: every note the current user can see, with own notes on top
+// notes tab: every note the current user can see, with own notes on top;
+// both lists are sortable and paginated, newest first by default
 const notesState = {
-  mine: { page: 1, total: 0, limit: 18 },
-  others: { page: 1, total: 0, limit: 18 }
+  mine: { page: 1, total: 0, limit: 18, sort: 'updatedAt', order: 'desc' },
+  others: { page: 1, total: 0, limit: 18, sort: 'updatedAt', order: 'desc' }
 }
 let notesLoaded = false
 
@@ -126,7 +127,9 @@ function fetchNotes (scope) {
   $.get(serverurl + '/api/notes', {
     scope,
     page: state.page,
-    limit: state.limit
+    limit: state.limit,
+    sort: state.sort,
+    order: state.order
   })
     .done(function (data) {
       state.total = data.total
@@ -136,6 +139,37 @@ function fetchNotes (scope) {
     .fail(function () {
       renderNotes(scope, [])
     })
+}
+
+// sort a notes list by clicking the Title / Updated column headers
+$('.ui-notes-list').on('click', '.ui-notes-sort', function (e) {
+  e.preventDefault()
+  const $list = $(this).closest('.ui-notes-list')
+  const scope = $list.hasClass('ui-notes-list-mine') ? 'mine' : 'others'
+  const state = notesState[scope]
+  const sort = $(this).attr('data-sort')
+  if (state.sort === sort) {
+    state.order = state.order === 'asc' ? 'desc' : 'asc'
+  } else {
+    state.sort = sort
+    // titles read best ascending, dates newest first
+    state.order = sort === 'title' ? 'asc' : 'desc'
+  }
+  state.page = 1
+  updateNotesSortIndicators($list, state)
+  fetchNotes(scope)
+})
+
+function updateNotesSortIndicators ($list, state) {
+  $list.find('.ui-notes-sort').each(function () {
+    const active = $(this).attr('data-sort') === state.sort
+    $(this).toggleClass('active', active)
+    $(this)
+      .find('i')
+      .toggleClass('fa-sort', !active)
+      .toggleClass('fa-sort-asc', active && state.order === 'asc')
+      .toggleClass('fa-sort-desc', active && state.order === 'desc')
+  })
 }
 
 function renderNotes (scope, notes) {
