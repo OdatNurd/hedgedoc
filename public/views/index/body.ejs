@@ -5,10 +5,9 @@
             <div class="masthead clearfix">
                 <div class="inner">
                     <h3 class="masthead-brand"></h3>
-                    <nav>
-                        <ul class="nav masthead-nav">
-                            <li class="ui-history active"><a href="#"><%= __('History') %></a>
-                            </li>
+                    <nav>                        <ul class="nav masthead-nav">
+                            <li class="ui-notes"><a href="#"><%= __('Notes') %></a></li>
+                            <li class="ui-history active"><a href="#"><%= __('History') %></a></li>
                             <div class="ui-signin" style="float: right; margin-top: 8px;<% if(signin) { %> display: none;<% } %>">
                                 <% if (allowAnonymous && !disableNoteCreation) { %>
                                 <a type="button" href="<%- serverURL %>/new" class="btn btn-sm btn-primary"><i class="fa fa-plus"></i> <%= __('New guest note') %></a>
@@ -37,6 +36,42 @@
                             </div>
                         </ul>
                     </nav>
+                </div>
+            </div>
+
+            <div id="notes" class="section" style="display:none;" data-not-in-history="<%= __('Not in history') %>" data-confirm-delete="<%= __('Do you really want to delete this note?') %>">
+                <h3><%= __('Your notes') %></h3>
+                <p class="ui-notes-mine-hint text-muted" style="display:none;"><%= __('Sign in to see your own notes here.') %></p>
+                <div class="ui-notes-list ui-notes-list-mine">
+                    <h4 class="ui-notes-empty text-muted" style="display:none;"><%= __('No notes') %></h4>
+                    <table class="table table-hover ui-notes-table">
+                        <thead>
+                            <tr>
+                                <th><%= __('Title') %></th>
+                                <th><%= __('Permission') %></th>
+                                <th><%= __('Updated') %></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <ul class="pagination"></ul>
+                </div>
+                <h3><%= __('Other visible notes') %></h3>
+                <div class="ui-notes-list ui-notes-list-others">
+                    <h4 class="ui-notes-empty text-muted" style="display:none;"><%= __('No notes') %></h4>
+                    <table class="table table-hover ui-notes-table">
+                        <thead>
+                            <tr>
+                                <th><%= __('Title') %></th>
+                                <th><%= __('Permission') %></th>
+                                <th><%= __('Updated') %></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <ul class="pagination"></ul>
                 </div>
             </div>
 

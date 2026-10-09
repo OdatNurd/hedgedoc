@@ -1,0 +1,15 @@
+.git
+node_modules
+public/build
+public/views/build
+tmp
+logs
+backups
+site
+*.log
+*.pid
+*.sqlite
+config.json
+.sequelizerc
+original_dockerfile.txt
+phase1.md

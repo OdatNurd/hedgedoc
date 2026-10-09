@@ -18,7 +18,7 @@
 
 Now that everything is in place, we can start HedgeDoc:
 
-1. `yarn run build` will build the frontend bundle. It uses webpack to do that.
+1. `pnpm run build` will build the frontend bundle. It uses webpack to do that.
 2. Run the server with `node app.js`
 
 ## Running the Code with Auto-Reload
@@ -31,7 +31,7 @@ rebuild the frontend or restart the server if necessary.
 The commands will stay active in your terminal, so you will need multiple tabs
 to run both at the same time.
 
-1. Use `yarn run dev` if you want webpack to continuously rebuild the frontend
+1. Use `pnpm run dev` if you want webpack to continuously rebuild the frontend
    code.
 
 2. To auto-reload the server, the easiest method is to install [nodemon](https://www.npmjs.com/package/nodemon)

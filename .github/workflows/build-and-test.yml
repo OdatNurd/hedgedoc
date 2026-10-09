@@ -27,10 +27,10 @@ jobs:
           NODEJS_VERSION: ${{ matrix.node }}
 
       - name: Build project
-        run: yarn run build
+        run: pnpm run build
 
       - name: Run tests
-        run: yarn run mocha-suite
+        run: pnpm run mocha-suite
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1

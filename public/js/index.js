@@ -487,15 +487,101 @@ const lastInfo = {
 }
 let personalInfo = {}
 let onlineUsers = []
+// map file extensions to language names accepted in code fences
+// (see supportCodeModes below); extension-less well known file names
+// (e.g. Makefile, Dockerfile) resolve through their full name
 const fileTypes = {
   pl: 'perl',
   cgi: 'perl',
+  pm: 'perl',
   js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'jsx',
+  ts: 'typescript',
+  tsx: 'typescript',
   php: 'php',
   sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  ksh: 'bash',
   rb: 'ruby',
-  html: 'html',
-  py: 'python'
+  py: 'python',
+  pyw: 'python',
+  html: 'xml',
+  htm: 'xml',
+  xml: 'xml',
+  svg: 'xml',
+  css: 'css',
+  scss: 'scss',
+  less: 'less',
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  toml: 'ini',
+  ini: 'ini',
+  cfg: 'ini',
+  conf: 'ini',
+  java: 'java',
+  kt: 'kotlin',
+  kts: 'kotlin',
+  scala: 'scala',
+  go: 'go',
+  rs: 'rust',
+  c: 'c',
+  h: 'cpp',
+  cpp: 'cpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  hpp: 'cpp',
+  cs: 'csharp',
+  swift: 'swift',
+  m: 'objectivec',
+  mm: 'objectivec',
+  lua: 'lua',
+  r: 'r',
+  sql: 'sql',
+  pgsql: 'pgsql',
+  md: 'markdown',
+  markdown: 'markdown',
+  diff: 'diff',
+  patch: 'diff',
+  dockerfile: 'dockerfile',
+  makefile: 'makefile',
+  mk: 'makefile',
+  cmake: 'cmake',
+  vim: 'vim',
+  ps1: 'powershell',
+  bat: 'dos',
+  cmd: 'dos',
+  tex: 'latex',
+  erl: 'erlang',
+  ex: 'elixir',
+  exs: 'elixir',
+  hs: 'haskell',
+  clj: 'clojure',
+  groovy: 'groovy',
+  dart: 'dart',
+  proto: 'protobuf'
+}
+
+// look up the fence language for a file name; empty string when unknown
+function languageForFile (name) {
+  const lower = String(name || '').toLowerCase()
+  const dot = lower.lastIndexOf('.')
+  const ext = dot > 0 ? lower.slice(dot + 1) : lower
+  return fileTypes[ext] || ''
+}
+
+// wrap content in a code fence; grows the fence when the content
+// contains backticks so the block always stays intact
+function fencedCodeBlock (language, content) {
+  let fence = '```'
+  while (content.indexOf(fence) !== -1) {
+    fence += '`'
+  }
+  const body = /\n$/.test(content) || content === '' ? content : content + '\n'
+  return fence + language + '\n' + body + fence + '\n'
 }
 
 // editor settings
@@ -663,8 +749,9 @@ $(document).ready(function () {
     Cookies.remove('nightMode')
   }
 
-  // Re-enable nightmode
-  if (store.get('nightMode') === true) {
+  // night mode is the default when no preference has been stored yet;
+  // an explicit stored value (true/false) always wins
+  if (store.get('nightMode') !== false) {
     $body.addClass('night')
     ui.toolbar.night.addClass('active')
   }
@@ -1084,6 +1171,10 @@ function changeMode (type) {
       if (!uploadButtonVisible) {
         $('#uploadImage').remove()
       }
+      // the permission control lives in the toolbar now; apply the state
+      // that was computed before the bar existed
+      applyPermissionLabel()
+      syncPermissionMenuVisibility()
     }
     // work around foldGutter might not init properly
     editor.setOption('foldGutter', false)
@@ -1840,10 +1931,16 @@ $('#gistImportModalConfirm').click(function () {
               // the import proxy returns plain strings, the raw GitHub API
               // returns objects with a content property
               const file = data.files[key]
-              contents += key
-              contents += '\n---\n'
-              contents += typeof file === 'string' ? file : (file && file.content) || ''
-              contents += '\n\n'
+              const raw = typeof file === 'string' ? file : (file && file.content) || ''
+              const lang = languageForFile(key)
+              contents += '## ' + key + '\n\n'
+              if (raw && lang === 'markdown') {
+                // markdown files are inserted as-is
+                contents += /\n$/.test(raw) ? raw : raw + '\n'
+              } else {
+                contents += fencedCodeBlock(lang, raw)
+              }
+              contents += '\n'
             })
             replaceAll(contents)
           } else {
@@ -1904,18 +2001,16 @@ $('#snippetImportModalConfirm').click(function () {
     $.get(fullURL + accessToken)
       .done(function (data) {
         let content = '# ' + (data.title || 'Snippet Import')
-        const fileInfo = data.file_name.split('.')
-        fileInfo[1] = fileInfo[1] ? fileInfo[1] : 'md'
         $.get(fullURL + '/raw' + accessToken)
           .done(function (raw) {
             if (raw) {
               content += '\n\n'
-              if (fileInfo[1] !== 'md') {
-                content += '```' + fileTypes[fileInfo[1]] + '\n'
-              }
-              content += raw
-              if (fileInfo[1] !== 'md') {
-                content += '\n```'
+              const lang = languageForFile(data.file_name)
+              if (lang === 'markdown') {
+                // markdown files are inserted as-is
+                content += raw
+              } else {
+                content += fencedCodeBlock(lang, raw)
               }
               replaceAll(content)
             }
@@ -1995,18 +2090,48 @@ $('#snippetExportModalConfirm').click(function () {
   })
 })
 
-function parseToMarkdown (html) {
+function parseToMarkdown (html, baseUrl) {
   // import only the visible document content: drop scripts, styles and
   // document metadata that would otherwise leak into the note
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  $(doc).find('script, style, meta, link, title').remove()
-  const content = doc.body ? doc.body.innerHTML : html
+  // prefer the page's own headline over the document title, which usually
+  // carries site suffixes
+  const headline = doc.body && doc.body.querySelector('main h1, article h1, [role="main"] h1, h1')
+  const pageTitle = ((headline && headline.textContent) || doc.title || '').trim()
+  // resolve relative links against the source page so they keep working
+  if (baseUrl) {
+    $(doc).find('a[href], img[src]').each(function () {
+      const attr = this.tagName === 'IMG' ? 'src' : 'href'
+      const value = this.getAttribute(attr)
+      if (value && !/^(#|mailto:|javascript:|data:)/i.test(value)) {
+        try {
+          this.setAttribute(attr, new URL(value, baseUrl).href)
+        } catch (err) {
+          // keep the original value when it cannot be resolved
+        }
+      }
+    })
+  }
+  $(doc).find('script, style, meta, link, base, title, noscript, template').remove()
+  // prefer the main content region when the page has one, so site chrome
+  // (headers, navbars, footers) does not end up in the note
+  const main = doc.body && doc.body.querySelector('main, article, [role="main"]')
+  const content = main ? main.innerHTML : (doc.body ? doc.body.innerHTML : html)
   const turndownService = new TurndownService({
     defaultReplacement: function (innerHTML, node) {
-      return node.isBlock ? '\n\n' + node.outerHTML + '\n\n' : node.outerHTML
+      // unwrap unknown nodes and keep their converted children, so the
+      // note gets the page's text instead of raw HTML
+      return node.isBlock ? '\n\n' + innerHTML + '\n\n' : innerHTML
     }
   })
-  return turndownService.turndown(content)
+  // tables and embeds have no markdown equivalent: keep them as raw HTML
+  turndownService.keep(['table', 'iframe'])
+  const converted = turndownService.turndown(content)
+  // give the import a proper note title when the content has none
+  if (pageTitle && !/^#\s/.test(converted)) {
+    return '# ' + pageTitle + '\n\n' + converted
+  }
+  return converted
 }
 
 // extract the text of a contenteditable element, keeping line breaks that
@@ -2077,7 +2202,7 @@ function importFromUrl (url, insertAtCursor) {
   $.get(serverurl + '/import', { url })
     .done(function (data) {
       const isHtml = (data.contentType || '').indexOf('html') !== -1
-      const parsed = isHtml ? parseToMarkdown(data.content) : data.content
+      const parsed = isHtml ? parseToMarkdown(data.content, url) : data.content
       if (!parsed) return
       if (insertAtCursor) {
         insertToEditor(parsed)
@@ -2150,18 +2275,26 @@ $(document).on('click', '.ui-permission-protected', function () {
 $(document).on('click', '.ui-delete-note', function () {
   $('.delete-modal').modal('show')
 })
-// mirror the server-side visibility of the freely option into the statusbar copy
-$('.status-permission .ui-permission-freely').css(
-  'display',
-  $('.ui-infobar .ui-permission-freely').css('display')
-)
+// mirror the server-side visibility of the infobar menu items into the
+// editor toolbar copy of the permission menu
+function syncPermissionMenuVisibility () {
+  const $source = $('.ui-infobar .dropdown-menu').first().children('li')
+  const $target = $('.toolbar .ui-permission .dropdown-menu').children('li')
+  $source.each(function (index) {
+    if ($target[index]) {
+      $target[index].style.display = this.style.display
+    }
+  })
+}
+syncPermissionMenuVisibility()
 $('.ui-delete-modal-confirm').click(function () {
   socket.emit('delete')
 })
 
 function toggleNightMode () {
   const $body = $('body')
-  const isActive = store.get('nightMode') === true
+  // same resolution as on startup: unset means night mode is active
+  const isActive = store.get('nightMode') !== false
   $body.toggleClass('night', !isActive)
   ui.toolbar.night.toggleClass('active', !isActive)
   store.set('nightMode', !isActive)
@@ -2178,6 +2311,12 @@ function updatePermission (newPermission) {
     permission = newPermission
     if (window.loaded) refreshView()
   }
+  applyPermissionLabel()
+}
+
+// write the current permission state into every copy of the control; the
+// editor toolbar copy is created after the first update and needs a re-apply
+function applyPermissionLabel () {
   let label = null
   let title = null
   switch (permission) {
@@ -3900,6 +4039,7 @@ function replaceMisspelledWord (entry, replacement) {
 
 function showSpellcheckMenu (entry, coords) {
   hideSpellcheckMenu()
+  hideSpellcheckHint()
   const suggestions = window.getSpellcheckSuggestions
     ? window.getSpellcheckSuggestions(entry.word)
     : []
@@ -3942,10 +4082,60 @@ $('.ui-edit-area').on('mousedown', '.cm-spell-error', function (e) {
   if (!entry) return
   showSpellcheckMenu(entry, editor.charCoords(pos, 'window'))
 })
+// small hint shown while hovering a misspelled word
+function showSpellcheckHint (coords) {
+  $('<div class="spellcheck-hint">Click to fix</div>')
+    .appendTo(document.body)
+    .css({
+      position: 'fixed',
+      left: coords.left + 'px',
+      top: coords.bottom + 4 + 'px',
+      zIndex: 1050,
+      padding: '2px 8px',
+      borderRadius: '3px',
+      fontSize: '12px',
+      lineHeight: '1.6',
+      color: '#eee',
+      background: 'rgba(40, 40, 40, 0.9)',
+      pointerEvents: 'none'
+    })
+}
+
+function hideSpellcheckHint () {
+  $('.spellcheck-hint').remove()
+}
+
+// hovering a misspelled word hints that clicking fixes it
+$('.ui-edit-area')
+  .on('mouseover', '.cm-spell-error', function (e) {
+    if ($('.spellcheck-menu').length) return
+    const pos = editor.coordsChar(
+      { left: e.clientX, top: e.clientY },
+      'window'
+    )
+    hideSpellcheckHint()
+    showSpellcheckHint(editor.charCoords(pos, 'window'))
+  })
+  .on('mouseout', '.cm-spell-error', function () {
+    hideSpellcheckHint()
+  })
+  // right-clicking a misspelling opens the suggestions instead of the
+  // browser context menu; right-clicking anywhere else keeps the normal menu
+  .on('contextmenu', '.cm-spell-error', function (e) {
+    e.preventDefault()
+    const pos = editor.coordsChar(
+      { left: e.clientX, top: e.clientY },
+      'window'
+    )
+    const entry = wordAtPosition(pos)
+    if (!entry) return
+    showSpellcheckMenu(entry, editor.charCoords(pos, 'window'))
+  })
 $(document).on('mousedown', function (e) {
   // keep the menu open when the click opened it (on a misspelled word)
   if (!$(e.target).closest('.spellcheck-menu, .cm-spell-error').length) {
     hideSpellcheckMenu()
+    hideSpellcheckHint()
   }
 })
 

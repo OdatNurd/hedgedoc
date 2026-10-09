@@ -31,7 +31,8 @@ function applyNightMode (enabled) {
   $('.ui-infobar .ui-night').toggleClass('active', enabled)
 }
 
-applyNightMode(store.get('nightMode') === true)
+// night mode is the default when no preference has been stored yet
+applyNightMode(store.get('nightMode') !== false)
 $('.ui-infobar .ui-night').click(function (e) {
   e.preventDefault()
   const enabled = !$(document.body).hasClass('night')

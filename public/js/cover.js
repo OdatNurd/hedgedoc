@@ -94,6 +94,139 @@ $('.masthead-nav li').click(function () {
   $(this).addClass('active')
 })
 
+// notes tab: every note the current user can see, with own notes on top
+const notesState = {
+  mine: { page: 1, total: 0, limit: 18 },
+  others: { page: 1, total: 0, limit: 18 }
+}
+let notesLoaded = false
+
+$('.masthead-nav .ui-notes a').click(function (e) {
+  e.preventDefault()
+  $('#history').hide()
+  $('#notes').show()
+  loadNotes()
+})
+
+$('.masthead-nav .ui-history a').click(function (e) {
+  e.preventDefault()
+  $('#notes').hide()
+  $('#history').show()
+})
+
+function loadNotes (force) {
+  if (notesLoaded && !force) return
+  notesLoaded = true
+  fetchNotes('mine')
+  fetchNotes('others')
+}
+
+function fetchNotes (scope) {
+  const state = notesState[scope]
+  $.get(serverurl + '/api/notes', {
+    scope,
+    page: state.page,
+    limit: state.limit
+  })
+    .done(function (data) {
+      state.total = data.total
+      state.limit = data.limit
+      renderNotes(scope, data.notes)
+    })
+    .fail(function () {
+      renderNotes(scope, [])
+    })
+}
+
+function renderNotes (scope, notes) {
+  const $list = $('.ui-notes-list-' + scope)
+  const signedIn = getLoginState()
+  const $body = $list.find('tbody')
+  $body.empty()
+  notes.forEach(function (note) {
+    $body.append(buildNotesRow(note))
+  })
+  if (scope === 'mine') {
+    $('.ui-notes-mine-hint').toggle(!signedIn)
+  }
+  // guests get the sign-in hint instead of an empty state
+  const showEmpty = notes.length === 0 && (scope !== 'mine' || signedIn)
+  $list.find('.ui-notes-empty').toggle(showEmpty)
+  $list.find('.ui-notes-table').toggle(notes.length > 0)
+  renderNotesPagination($list.find('.pagination'), notesState[scope], function (page) {
+    notesState[scope].page = page
+    fetchNotes(scope)
+  })
+}
+
+function buildNotesRow (note) {
+  const $row = $('<tr>')
+  const $title = $('<td>')
+  $('<a>')
+    .attr('href', serverurl + '/' + note.id)
+    .text(note.title || 'Untitled')
+    .appendTo($title)
+  if (note.inHistory === false) {
+    $title.append(' ')
+    $('<span class="label label-warning"></span>')
+      .text($('#notes').data('not-in-history'))
+      .appendTo($title)
+  }
+  $row.append($title)
+  const $permission = $('<td>').text(note.permission || '')
+  if (note.ownerName) {
+    $permission.append(' ').append(
+      $('<small class="text-muted"></small>').text(note.ownerName)
+    )
+  }
+  $row.append($permission)
+  $row.append($('<td>').text(moment(note.updatedAt).fromNow()))
+  const $actions = $('<td class="text-right">')
+  if (note.mine) {
+    $('<button class="btn btn-xs btn-danger ui-notes-delete"></button>')
+      .attr('data-id', note.id)
+      .attr('title', $('#notes').data('confirm-delete'))
+      .append('<i class="fa fa-trash-o"></i>')
+      .appendTo($actions)
+  }
+  $row.append($actions)
+  return $row
+}
+
+function renderNotesPagination ($pagination, state, onChange) {
+  $pagination.empty()
+  const totalPages = Math.ceil(state.total / state.limit)
+  if (totalPages <= 1) return
+  const $prev = $('<li><a href="#">&laquo;</a></li>')
+  const $next = $('<li><a href="#">&raquo;</a></li>')
+  const $current = $('<li class="disabled"><a></a></li>')
+  $current.find('a').text(state.page + ' / ' + totalPages)
+  $pagination.append($prev).append($current).append($next)
+  $prev.toggleClass('disabled', state.page <= 1)
+  $next.toggleClass('disabled', state.page >= totalPages)
+  $prev.find('a').click(function (e) {
+    e.preventDefault()
+    if (state.page > 1) onChange(state.page - 1)
+  })
+  $next.find('a').click(function (e) {
+    e.preventDefault()
+    if (state.page < totalPages) onChange(state.page + 1)
+  })
+}
+
+// delete own notes right from the listing
+$('.ui-notes-list').on('click', '.ui-notes-delete', function (e) {
+  e.preventDefault()
+  const id = $(this).attr('data-id')
+  if (!window.confirm($('#notes').data('confirm-delete'))) return
+  $.ajax({
+    url: serverurl + '/api/notes/' + encodeURIComponent(id),
+    type: 'DELETE'
+  }).always(function () {
+    loadNotes(true)
+  })
+})
+
 // prevent empty link change hash
 $('a[href="#"]').click(function (e) {
   e.preventDefault()

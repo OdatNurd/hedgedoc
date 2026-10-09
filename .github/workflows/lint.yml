@@ -20,13 +20,13 @@ jobs:
           NODEJS_VERSION: '24'
 
       - name: Run ESLint
-        run: yarn run eslint
+        run: pnpm run eslint
 
       - name: Lint markdown files
-        run: yarn run markdownlint
+        run: pnpm run markdownlint
 
       - name: Lint shell scripts with shellcheck
         run: shellcheck bin/heroku bin/setup
 
       - name: Lint JSON files
-        run: sudo apt install -y jq && yarn run jsonlint
+        run: sudo apt install -y jq && pnpm run jsonlint

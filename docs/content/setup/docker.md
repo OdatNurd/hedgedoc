@@ -49,6 +49,31 @@ After executing `docker-compose up`, HedgeDoc should be available at [http://loc
 You can now continue to configure your container with environment variables.
 Check out [the configuration docs](../configuration.md) for more details.
 
+## Building the image locally
+
+The image can also be built from this repository, for example after changing
+the application. The build uses pnpm and reproduces the same runtime contract
+as the published image: it runs as the unprivileged `hedgedoc` user (uid/gid
+`10000` by default, overridable with the `UID`/`GID` build args), keeps its
+runtime configuration in `/files/config.json` (bind-mount over it to configure
+the container), and ships a health check against `/_health`.
+
+```shell
+docker build -t hedgedoc:local .
+```
+
+Run it like the published image, with the uploads directory in a volume:
+
+```shell
+docker run -d --name hedgedoc \
+  -p 3000:3000 \
+  -e CMD_DB_URL=postgres://hedgedoc:password@database:5432/hedgedoc \
+  -e CMD_DOMAIN=localhost \
+  -e CMD_URL_ADDPORT=true \
+  -v uploads:/hedgedoc/public/uploads \
+  hedgedoc:local
+```
+
 ## File Permissions
 
 By default, HedgeDoc will change the permissions of the uploads directory to

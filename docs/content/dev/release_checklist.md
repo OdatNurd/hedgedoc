@@ -21,7 +21,7 @@ To copy this checklist please go to [this link](https://github.com/hedgedoc/hedg
     - `version`
   - [ ] docs/content/setup/docker.md
     - Update docker-compose in the docs
-- [ ] Make sure `yarn.lock` is up to date
+- [ ] Make sure `pnpm-lock.yaml` is up to date
 - [ ] Make sure translations are up to date
   - We use [poeditor_pull](https://github.com/costales/poeditor_pull) to download all language files from POEditor.
 
@@ -51,11 +51,11 @@ To copy this checklist please go to [this link](https://github.com/hedgedoc/hedg
 ```bash
 mkdir /tmp/hedgedoc && cd /tmp/hedgedoc
 git clone -b master https://github.com/hedgedoc/hedgedoc.git .
-yarn install
-yarn build:ot
-yarn build
+pnpm install --frozen-lockfile
+pnpm run build:ot
+pnpm run build
 cd ..
-tar cvzf hedgedoc-x.y.z.tar.gz --sort=name --exclude hedgedoc/node_modules --exclude hedgedoc/.git --exclude hedgedoc/.github --exclude hedgedoc/.yarn/cache hedgedoc
+tar cvzf hedgedoc-x.y.z.tar.gz --sort=name --exclude hedgedoc/node_modules --exclude hedgedoc/.git --exclude hedgedoc/.github hedgedoc
 ```
 
 Use this tar ball to test the following things:
