@@ -75,7 +75,6 @@ function pageInit () {
       else $('.ui-avatar').prop('src', '').hide()
       $('.ui-name').html(data.name)
       $('.ui-signout').show()
-      $('.ui-history').click()
       parseServerToHistory(historyList, parseHistoryCallback)
     },
     () => {
@@ -98,20 +97,6 @@ $('.masthead-nav li').click(function () {
 // prevent empty link change hash
 $('a[href="#"]').click(function (e) {
   e.preventDefault()
-})
-
-$('.ui-home').click(function (e) {
-  if (!$('#home').is(':visible')) {
-    $('.section:visible').hide()
-    $('#home').fadeIn()
-  }
-})
-
-$('.ui-history').click(() => {
-  if (!$('#history').is(':visible')) {
-    $('.section:visible').hide()
-    $('#history').fadeIn()
-  }
 })
 
 function checkHistoryList () {

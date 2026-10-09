@@ -7,9 +7,7 @@
                     <h3 class="masthead-brand"></h3>
                     <nav>
                         <ul class="nav masthead-nav">
-                            <li class="ui-home<% if(!signin) { %> active<% } %>"><a href="#"><%= __('Intro') %></a>
-                            </li>
-                            <li class="ui-history<% if(signin) { %> active<% } %>"><a href="#"><%= __('History') %></a>
+                            <li class="ui-history active"><a href="#"><%= __('History') %></a>
                             </li>
                             <div class="ui-signin" style="float: right; margin-top: 8px;<% if(signin) { %> display: none;<% } %>">
                                 <% if (allowAnonymous && !disableNoteCreation) { %>
@@ -42,61 +40,13 @@
                 </div>
             </div>
 
-            <div id="home" class="section"<% if(signin) { %> style="display:none;"<% } %>>
-                <div class="inner cover">
-                    <h1 class="cover-heading"><img src="<%- serverURL %>/banner/banner_vertical_color.svg" width="400" alt="HedgeDoc logo"></h1>
-                    <p class="lead">
-                        Ideas grow better together
-                    </p>
-                    <% if (infoMessage && infoMessage.length > 0) { %>
-                    <div class="alert alert-info" style="max-width: 400px; margin: 0 auto;"><%= infoMessage %></div>
-                    <% } %>
-                    <% if (errorMessage && errorMessage.length > 0) { %>
-                    <div class="alert alert-danger" style="max-width: 400px; margin: 0 auto;"><%= errorMessage %></div>
-                    <% } %>
-                    <% if (authProviders.autoLoginProvider) { %>
-                    <span class="ui-signin">
-                        <br>
-                        <a type="button" href="<%- serverURL %>/auth/<%- authProviders.autoLoginProvider %>" class="btn btn-lg btn-success ui-signin" style="min-width: 200px;"><%= __('Sign In') %></a>
-                    </span>
-                    <span class="ui-or"><%= __('or') %></span>
-                    <% } else if (authProviders.facebook || authProviders.twitter || authProviders.github || authProviders.gitlab || authProviders.mattermost || authProviders.dropbox || authProviders.google || authProviders.ldap || authProviders.saml || authProviders.oauth2 || authProviders.email) { %>
-                    <span class="ui-signin">
-                        <br>
-                        <a type="button" class="btn btn-lg btn-success ui-signin" data-toggle="modal" data-target=".signin-modal" style="min-width: 200px;"><%= __('Sign In') %></a>
-                    </span>
-                    <span class="ui-or"><%= __('or') %></span>
-                    <% } %>
-                    <span class="ui-signin">
-                        <a type="button" href="<%- serverURL %>/features" class="btn btn-lg btn-primary" style="min-width: 200px;"><%= __('Explore all features') %></a>
-                        <br>
-                        <br>
-                        <img src="<%- serverURL %>/screenshot.png" class="screenshot ui-signin">
-                    </span>
-                    <div class="lead row" style="width: 90%; margin: 0 auto;">
-                        <div class="col-md-4 inner">
-                            <a href="<%- serverURL %>/features#Share-Notes">
-                                <i class="fa fa-bolt fa-3x"></i>
-                                <h4><%= __('Collaborate with URL') %></h4>
-                            </a>
-                        </div>
-                        <div class="col-md-4 inner">
-                            <a href="<%- serverURL %>/features#MathJax">
-                                <i class="fa fa-bar-chart fa-3x"></i>
-                                <h4><%= __('Support charts and MathJax') %></h4>
-                            </a>
-                        </div>
-                        <div class="col-md-4 inner">
-                            <a href="<%- serverURL %>/features#Slide-Mode">
-                                <i class="fa fa-tv fa-3x"></i>
-                                <h4><%= __('Support slide mode') %></h4>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="history" class="section"<% if(!signin) { %> style="display:none;"<% } %>>
+            <div id="history" class="section">
+                <% if (infoMessage && infoMessage.length > 0) { %>
+                <div class="alert alert-info" style="max-width: 400px; margin: 0 auto;"><%= infoMessage %></div>
+                <% } %>
+                <% if (errorMessage && errorMessage.length > 0) { %>
+                <div class="alert alert-danger" style="max-width: 400px; margin: 0 auto;"><%= errorMessage %></div>
+                <% } %>
                 <div class="ui-signin"<% if(signin) { %> style="display:none;"<% } %>>
                     <p><%= __('Below is the history from browser') %></p>
                 </div>

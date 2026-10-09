@@ -89,6 +89,28 @@ iframe.github-gist-frame {
     display: none;
 }
 
+/* night mode, shared between the editor and the published view */
+body.night {
+    background: #333 !important;
+    color: #ededed;
+}
+
+body.night .no-night {
+    display: none;
+}
+
+body:not(.night) .night {
+    display: none;
+}
+
+.night a {
+    color: #5EB7E0;
+}
+
+.ui-infobar .ui-night.active {
+    color: #5EB7E0;
+}
+
 .ui-infobar {
     position: relative;
     z-index: 2;

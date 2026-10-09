@@ -271,6 +271,7 @@ app.locals.enableGitHubGist = config.isGitHubEnable
 app.locals.enableGitlabSnippets = config.isGitlabSnippetsEnable
 
 app.use(require('./lib/web/baseRouter'))
+app.use(require('./lib/web/importRouter'))
 app.use(require('./lib/web/statusRouter'))
 app.use(require('./lib/web/auth'))
 app.use(require('./lib/web/historyRouter'))

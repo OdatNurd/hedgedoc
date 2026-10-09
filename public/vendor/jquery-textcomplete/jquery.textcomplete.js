@@ -482,7 +482,9 @@ if (typeof jQuery === 'undefined') {
 
     isEnter: function (e) {
       var modifiers = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-      return !modifiers && (e.keyCode === 13 || e.keyCode === 9 || (this.option.completeOnSpace === true && e.keyCode === 32))  // ENTER, TAB
+      // only TAB (and optionally SPACE) accepts the highlighted item, so ENTER
+      // keeps inserting a newline while the dropdown is open
+      return !modifiers && (e.keyCode === 9 || (this.option.completeOnSpace === true && e.keyCode === 32))  // TAB
     },
 
     isPageup: function (e) {

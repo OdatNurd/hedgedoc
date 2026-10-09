@@ -80,6 +80,8 @@ import '@hedgedoc/codemirror-5/mode/vhdl/vhdl.js'
 import '@hedgedoc/codemirror-5/mode/xml/xml.js'
 import '@hedgedoc/codemirror-5/mode/yaml-frontmatter/yaml-frontmatter.js'
 import '@hedgedoc/codemirror-5/mode/yaml/yaml.js'
+// overrides the stock yaml-frontmatter mode with strict delimiter handling
+import './yaml-frontmatter.js'
 import '../../../vendor/codemirror-spell-checker/spell-checker.min.js'
 
 import '../../../vendor/inlineAttachment/inline-attachment'
@@ -94,7 +96,7 @@ import '../../../css/ui/toolbar.css'
 
 /* config section */
 const isMac = CodeMirror.keyMap.default === CodeMirror.keyMap.macDefault
-const defaultEditorMode = 'gfm'
+const defaultEditorMode = 'yaml-frontmatter'
 const viewportMargin = 20
 
 const jumpToAddressBarKeymapName = isMac ? 'Cmd-L' : 'Ctrl-L'

@@ -98,7 +98,7 @@ require('./fix-aria-hidden-for-modals')
 
 let defaultTextHeight = 20
 let viewportMargin = 20
-const defaultEditorMode = 'gfm'
+const defaultEditorMode = 'yaml-frontmatter'
 
 const idleTime = 300000 // 5 mins
 const updateViewDebounce = 100
@@ -1767,11 +1767,22 @@ $('#clipboardModalClear').click(function () {
   $('#clipboardModalContent').html('')
 })
 $('#clipboardModalConfirm').click(function () {
-  const data = $('#clipboardModalContent').text()
-  if (data) {
-    parseToEditor(data)
-    $('#clipboardModal').modal('hide')
-    $('#clipboardModalContent').html('')
+  const content = $('#clipboardModalContent')
+  const html = content.html()
+  const text = getContentEditableText(content[0])
+  if (!text.trim()) return
+  $('#clipboardModal').modal('hide')
+  content.html('')
+  const trimmed = text.trim()
+  // a bare URL is fetched and its content inserted
+  if (isValidURL(trimmed) && !/\s/.test(trimmed)) {
+    importFromUrl(trimmed, true)
+    return
+  }
+  if (looksLikeRichHtml(html)) {
+    insertToEditor(parseToMarkdown(html))
+  } else {
+    insertToEditor(text)
   }
 })
 
@@ -1808,16 +1819,30 @@ $('#gistImportModalConfirm').click(function () {
         false
       )
     } else {
+      const parts = new URL(gisturl).pathname.split('/').filter(Boolean)
+      const gistId = parts.length > 0 ? parts[parts.length - 1] : ''
+      if (!/^[a-f0-9]+$/i.test(gistId)) {
+        showMessageModal(
+          '<i class="fa fa-github"></i> Import from Gist',
+          'Not a valid Gist URL :(',
+          '',
+          '',
+          false
+        )
+        return
+      }
       ui.spinner.show()
-      const gistId = new URL(gisturl).pathname.split('/').pop()
-      $.get('https://api.github.com/gists/' + gistId)
+      $.get(serverurl + '/gist/' + gistId)
         .done(function (data) {
           if (data.files) {
             let contents = ''
             Object.keys(data.files).forEach(function (key) {
+              // the import proxy returns plain strings, the raw GitHub API
+              // returns objects with a content property
+              const file = data.files[key]
               contents += key
               contents += '\n---\n'
-              contents += data.files[key].content
+              contents += typeof file === 'string' ? file : (file && file.content) || ''
               contents += '\n\n'
             })
             replaceAll(contents)
@@ -1834,9 +1859,9 @@ $('#gistImportModalConfirm').click(function () {
         .fail(function (data) {
           showMessageModal(
             '<i class="fa fa-github"></i> Import from Gist',
-            'Not a valid Gist URL :(',
+            'Unable to fetch the gist :(',
             '',
-            JSON.stringify(data),
+            (data.responseJSON && data.responseJSON.error) || '',
             false
           )
         })
@@ -1970,16 +1995,55 @@ $('#snippetExportModalConfirm').click(function () {
   })
 })
 
-function parseToEditor (data) {
+function parseToMarkdown (html) {
+  // import only the visible document content: drop scripts, styles and
+  // document metadata that would otherwise leak into the note
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  $(doc).find('script, style, meta, link, title').remove()
+  const content = doc.body ? doc.body.innerHTML : html
   const turndownService = new TurndownService({
     defaultReplacement: function (innerHTML, node) {
       return node.isBlock ? '\n\n' + node.outerHTML + '\n\n' : node.outerHTML
     }
   })
-  const parsed = turndownService.turndown(data)
-  if (parsed) {
-    replaceAll(parsed)
+  return turndownService.turndown(content)
+}
+
+// extract the text of a contenteditable element, keeping line breaks that
+// <br> and block elements introduce
+function getContentEditableText (element) {
+  let out = ''
+  const blockTags = /^(DIV|P|LI|PRE|H[1-6]|TR|BLOCKQUOTE|SECTION|ARTICLE)$/
+  const walk = function (node) {
+    node.childNodes.forEach(function (child) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        out += child.nodeValue
+      } else if (child.nodeName === 'BR') {
+        out += '\n'
+      } else {
+        const isBlock = blockTags.test(child.nodeName)
+        if (isBlock && out && !out.endsWith('\n')) {
+          out += '\n'
+        }
+        walk(child)
+        if (isBlock) {
+          out += '\n'
+        }
+      }
+    })
   }
+  walk(element)
+  return out.replace(/\u00a0/g, ' ')
+}
+
+// pasted plain text (like markdown) is inserted verbatim with its line
+// breaks; rich content is converted to markdown through turndown
+function looksLikeRichHtml (html) {
+  return /<(?!\/?(?:div|p|br|span|meta|style|html|head|body|!--)\b)[a-z][^>]*>/i.test(html)
+}
+
+function insertToEditor (data) {
+  editor.replaceSelection(data, 'end', '+input')
 }
 
 function replaceAll (data) {
@@ -1997,8 +2061,7 @@ function replaceAll (data) {
   )
 }
 
-function importFromUrl (url) {
-  // console.debug(url);
+function importFromUrl (url, insertAtCursor) {
   if (!url) return
   if (!isValidURL(url)) {
     showMessageModal(
@@ -2010,30 +2073,30 @@ function importFromUrl (url) {
     )
     return
   }
-  $.ajax({
-    method: 'GET',
-    url,
-    success: function (data) {
-      const extension = url.split('.').pop()
-      if (extension === 'html') {
-        parseToEditor(data)
+  ui.spinner.show()
+  $.get(serverurl + '/import', { url })
+    .done(function (data) {
+      const isHtml = (data.contentType || '').indexOf('html') !== -1
+      const parsed = isHtml ? parseToMarkdown(data.content) : data.content
+      if (!parsed) return
+      if (insertAtCursor) {
+        insertToEditor(parsed)
       } else {
-        replaceAll(data)
+        replaceAll(parsed)
       }
-    },
-    error: function (data) {
+    })
+    .fail(function (data) {
       showMessageModal(
         '<i class="fa fa-cloud-download"></i> Import from URL',
         'Import failed :(',
         '',
-        JSON.stringify(data),
+        (data.responseJSON && data.responseJSON.error) || '',
         false
       )
-    },
-    complete: function () {
+    })
+    .always(function () {
       ui.spinner.hide()
-    }
-  })
+    })
 }
 
 // mode
@@ -2057,34 +2120,41 @@ ui.toolbar.night.click(function () {
   toggleNightMode()
 })
 // permission
+// the permission menu exists twice (view infobar and editor statusbar), so
+// bind delegated handlers that work for both copies
 // freely
-ui.infobar.permission.freely.click(function () {
+$(document).on('click', '.ui-permission-freely', function () {
   emitPermission('freely')
 })
 // editable
-ui.infobar.permission.editable.click(function () {
+$(document).on('click', '.ui-permission-editable', function () {
   emitPermission('editable')
 })
 // locked
-ui.infobar.permission.locked.click(function () {
+$(document).on('click', '.ui-permission-locked', function () {
   emitPermission('locked')
 })
 // private
-ui.infobar.permission.private.click(function () {
+$(document).on('click', '.ui-permission-private', function () {
   emitPermission('private')
 })
 // limited
-ui.infobar.permission.limited.click(function () {
+$(document).on('click', '.ui-permission-limited', function () {
   emitPermission('limited')
 })
 // protected
-ui.infobar.permission.protected.click(function () {
+$(document).on('click', '.ui-permission-protected', function () {
   emitPermission('protected')
 })
 // delete note
-ui.infobar.delete.click(function () {
+$(document).on('click', '.ui-delete-note', function () {
   $('.delete-modal').modal('show')
 })
+// mirror the server-side visibility of the freely option into the statusbar copy
+$('.status-permission .ui-permission-freely').css(
+  'display',
+  $('.ui-infobar .ui-permission-freely').css('display')
+)
 $('.ui-delete-modal-confirm').click(function () {
   socket.emit('delete')
 })
@@ -2142,11 +2212,11 @@ function updatePermission (newPermission) {
     personalInfo.userid === window.owner
   ) {
     label += ' <i class="fa fa-caret-down"></i>'
-    ui.infobar.permission.label.removeClass('disabled')
+    $('.ui-permission-label').removeClass('disabled')
   } else {
-    ui.infobar.permission.label.addClass('disabled')
+    $('.ui-permission-label').addClass('disabled')
   }
-  ui.infobar.permission.label.html(label).attr('title', title)
+  $('.ui-permission-label').html(label).attr('title', title)
 }
 
 function havePermission () {
@@ -3799,6 +3869,86 @@ function checkInIndentCode () {
   return isIndentCode
 }
 
+// spellcheck suggestions popup
+function hideSpellcheckMenu () {
+  $('.spellcheck-menu').remove()
+}
+
+// find the word around the given position on its line
+function wordAtPosition (pos) {
+  const line = editor.getLine(pos.line)
+  const wordRegex = /[A-Za-z][A-Za-z0-9']*/g
+  let match
+  while ((match = wordRegex.exec(line)) !== null) {
+    const start = match.index
+    const end = start + match[0].length
+    if (pos.ch >= start && pos.ch <= end) {
+      return { word: match[0], start, end, line: pos.line }
+    }
+  }
+  return null
+}
+
+function replaceMisspelledWord (entry, replacement) {
+  editor.replaceRange(
+    replacement,
+    { line: entry.line, ch: entry.start },
+    { line: entry.line, ch: entry.end },
+    '+input'
+  )
+}
+
+function showSpellcheckMenu (entry, coords) {
+  hideSpellcheckMenu()
+  const suggestions = window.getSpellcheckSuggestions
+    ? window.getSpellcheckSuggestions(entry.word)
+    : []
+  const $menu = $(
+    '<ul class="spellcheck-menu dropdown-menu" style="display:block;"></ul>'
+  )
+  if (suggestions.length > 0) {
+    suggestions.slice(0, 5).forEach(function (suggestion) {
+      const $item = $('<li><a href="#"></a></li>')
+      $item
+        .find('a')
+        .text(suggestion)
+        .end()
+        .on('mousedown', function (e) {
+          e.preventDefault()
+          replaceMisspelledWord(entry, suggestion)
+          hideSpellcheckMenu()
+        })
+        .appendTo($menu)
+    })
+  } else {
+    $('<li class="disabled"><a>No suggestions</a></li>').appendTo($menu)
+  }
+  $menu.appendTo(document.body)
+  $menu.css({
+    position: 'fixed',
+    left: coords.left + 'px',
+    top: coords.bottom + 'px'
+  })
+}
+
+// clicking a misspelled word shows possible replacements
+$('.ui-edit-area').on('mousedown', '.cm-spell-error', function (e) {
+  e.preventDefault()
+  const pos = editor.coordsChar(
+    { left: e.clientX, top: e.clientY },
+    'window'
+  )
+  const entry = wordAtPosition(pos)
+  if (!entry) return
+  showSpellcheckMenu(entry, editor.charCoords(pos, 'window'))
+})
+$(document).on('mousedown', function (e) {
+  // keep the menu open when the click opened it (on a misspelled word)
+  if (!$(e.target).closest('.spellcheck-menu, .cm-spell-error').length) {
+    hideSpellcheckMenu()
+  }
+})
+
 let isInCode = false
 
 function checkInCode () {
@@ -4132,7 +4282,11 @@ $(editor.getInputField())
         Left: function () {
           editor.doc.cm.execCommand('goCharLeft')
         },
-        Enter: function () {
+        // while the dropdown is open ENTER inserts a newline and only TAB
+        // accepts the highlighted item, so swallow TAB here and let the
+        // textcomplete key handler pick the item
+        Enter: 'newlineAndIndentContinueMarkdownList',
+        Tab: function () {
           return false
         },
         Backspace: function () {

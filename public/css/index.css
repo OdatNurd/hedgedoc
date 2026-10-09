@@ -11,21 +11,8 @@ body {
     /*overflow: hidden;*/
 }
 
-.night a,
 .night .open-files-container li.selected a {
     color: #5EB7E0;
-}
-
-body.night{
-    background: #333 !important;
-}
-
-body.night .no-night {
-  display: none;
-}
-
-body:not(.night) .night {
-  display: none;
 }
 
 .h-100 {

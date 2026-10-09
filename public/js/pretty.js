@@ -16,6 +16,7 @@ import {
 } from './extra'
 
 import { preventXSS } from './render'
+import store from 'store'
 
 require('../css/extra.css')
 require('../css/slide-preview.css')
@@ -23,6 +24,20 @@ require('../css/site.css')
 
 require('highlight.js/styles/github.css')
 require('../css/highlightjs.css')
+
+// night mode, shared with the editor through the same stored preference
+function applyNightMode (enabled) {
+  $(document.body).toggleClass('night', enabled)
+  $('.ui-infobar .ui-night').toggleClass('active', enabled)
+}
+
+applyNightMode(store.get('nightMode') === true)
+$('.ui-infobar .ui-night').click(function (e) {
+  e.preventDefault()
+  const enabled = !$(document.body).hasClass('night')
+  store.set('nightMode', enabled)
+  applyNightMode(enabled)
+})
 
 const markdown = $('#doc.markdown-body')
 const text = markdown.text()

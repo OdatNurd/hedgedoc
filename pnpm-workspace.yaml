@@ -1,0 +1,10 @@
+patchedDependencies:
+  passport@0.7.0: patches/passport-npm-0.7.0-df02531736.patch
+
+onlyBuiltDependencies:
+  - aws-sdk
+  - bufferutil
+  - core-js
+  - esbuild
+  - sqlite3
+  - utf-8-validate
