@@ -439,4 +439,92 @@ small .dropdown a:focus, small .dropdown a:hover {
     a[href]:after {
         font-size: 12px !important;
     }
+    .lightbox-overlay {
+        display: none !important;
+    }
+}
+
+/* ---- image lightbox (see public/js/lib/lightbox.js) ----
+   zoom affordance on rendered images plus the overlay opened on click;
+   shared by the editor's rendered pane and the published page */
+
+.markdown-body .img-lightbox {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.markdown-body .img-lightbox.zoomable,
+.markdown-body .img-lightbox.zoomable img {
+    cursor: zoom-in;
+}
+
+@media (hover: hover) {
+    .markdown-body .img-lightbox.zoomable:hover::after {
+        content: "\f00e"; /* ForkAwesome fa-search-plus */
+        font-family: ForkAwesome;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        font-size: 26px;
+        line-height: 1;
+        pointer-events: none;
+    }
+}
+
+.lightbox-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1060;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    cursor: zoom-out;
+}
+
+.lightbox-overlay .lightbox-image {
+    max-width: 95vw;
+    max-height: 95vh;
+    cursor: default;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+}
+
+.lightbox-overlay .lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.lightbox-overlay .lightbox-close:hover,
+.lightbox-overlay .lightbox-close:focus {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+body.lightbox-open {
+    overflow: hidden;
 }

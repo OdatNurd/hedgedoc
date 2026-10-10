@@ -79,6 +79,8 @@ import {
 
 import { preventXSS } from './render'
 
+import { initLightbox, lightboxify } from './lib/lightbox'
+
 import Editor from './lib/editor'
 
 import getUIElements from './lib/editor/ui-elements'
@@ -720,6 +722,7 @@ Visibility.change(function (e, state) {
 
 // when page ready
 $(document).ready(function () {
+  initLightbox()
   // set global ajax timeout
   $.ajaxSetup({
     timeout: 10000
@@ -3763,6 +3766,7 @@ function updateViewInner () {
   }
   removeDOMEvents(ui.area.markdown)
   finishView(ui.area.markdown)
+  lightboxify(ui.area.markdown)
   rewriteExternalLinks(ui.area.markdown)
   autoLinkify(ui.area.markdown)
   deduplicatedHeaderId(ui.area.markdown)

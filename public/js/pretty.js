@@ -16,6 +16,7 @@ import {
 } from './extra'
 
 import { preventXSS } from './render'
+import { initLightbox, lightboxify } from './lib/lightbox'
 import store from 'store'
 
 require('../css/extra.css')
@@ -79,6 +80,7 @@ $(document.body).show()
 
 removeDOMEvents(markdown)
 finishView(markdown)
+lightboxify(markdown)
 autoLinkify(markdown)
 deduplicatedHeaderId(markdown)
 renderTOC(markdown)
@@ -142,6 +144,7 @@ $(window).resize(() => {
   windowResize()
 })
 $(document).ready(() => {
+  initLightbox()
   windowResize()
   generateScrollspy()
   setTimeout(scrollToHash, 0)
