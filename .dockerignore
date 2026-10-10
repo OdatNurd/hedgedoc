@@ -13,3 +13,8 @@ config.json
 .sequelizerc
 original_dockerfile.txt
 phase1.md
+phase2.md
+phase3.md
+devmode.md
+hedgedoc.sublime-project
+hedgedoc.sublime-workspace

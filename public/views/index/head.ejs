@@ -16,4 +16,13 @@
 <meta property="og:image:type" content="image/png">
 <base href="<%- serverURL %>/">
 <title>HedgeDoc - Ideas grow better together</title>
+<style>
+/* the cover page is always dark; paint it before the stylesheet bundle
+   arrives so a page navigation never flashes white (kept in sync with
+   public/css/cover.css) */
+html,
+body {
+    background-color: #333;
+}
+</style>
 <%- include('../build/cover-pack-header') %>

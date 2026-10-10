@@ -24,19 +24,7 @@
     <% } %>
     <base href="<%- serverURL %>/">
     <title><%= title %></title>
-    <script nonce="<%= cspNonce %>">
-    // apply the stored night-mode preference before the first paint so the
-    // page never flashes the light theme (mirrors the resolution used by the
-    // app: night mode is on unless an explicit false is stored)
-    (function () {
-        try {
-            var pref = window.localStorage.getItem('nightMode')
-            if (pref === null || JSON.parse(pref) !== false) {
-                document.documentElement.classList.add('night')
-            }
-        } catch (err) { }
-    })()
-    </script>
+    <%- include('includes/night-prepaint') %>
     <%- include('includes/favicon.ejs') %>
     <link rel="stylesheet" href='<%- serverURL %>/build/emojify.js/dist/css/basic/emojify.min.css'>
     <%- include('build/pretty-pack-header') %>

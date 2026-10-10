@@ -1,0 +1,23 @@
+<script nonce="<%= cspNonce %>">
+// apply the stored night-mode preference before the first paint so the page
+// never flashes the light theme (mirrors the resolution used by the app:
+// night mode is on unless an explicit false is stored)
+(function () {
+    try {
+        var pref = window.localStorage.getItem('nightMode')
+        if (pref === null || JSON.parse(pref) !== false) {
+            document.documentElement.classList.add('night')
+        }
+    } catch (err) { }
+})()
+</script>
+<style>
+/* paint the night canvas before the stylesheet bundles arrive, so a page
+   navigation never flashes white; kept in sync with html.night in
+   public/css/extra.css */
+html.night,
+html.night body {
+    background-color: #333;
+    color: #ededed;
+}
+</style>

@@ -26,13 +26,13 @@ a:hover {
 html {
     height: 100%;
 }
-html,
 /* the cover is dark; bootstrap's table hover paints light gray which makes
    the white row text illegible, so use a dark hover for the notes tables */
 .ui-notes-table.table-hover > tbody > tr:hover > td {
     background-color: #454545;
 }
 
+html,
 body {
     background-color: #333;
 }

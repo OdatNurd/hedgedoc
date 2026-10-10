@@ -3,7 +3,7 @@
 # (see original_dockerfile.txt) with the build process switched to pnpm.
 
 ########## build stage ##########
-FROM node:24.18.0-bookworm AS build
+FROM node:20-bullseye AS build
 WORKDIR /build
 
 # pnpm is pinned via the packageManager field in package.json
@@ -20,7 +20,7 @@ RUN pnpm build \
  && pnpm prune --prod
 
 ########## runtime stage ##########
-FROM node:24.18.0-bookworm
+FROM node:20-bullseye
 
 LABEL org.opencontainers.image.title="HedgeDoc production image (debian)"
 LABEL org.opencontainers.image.url="https://hedgedoc.org"
@@ -34,7 +34,9 @@ ARG GID=10000
 ENV NODE_ENV=production
 ENV UPLOADS_MODE=0700
 
-RUN apt-get update \
+RUN echo "deb http://archive.debian.org/debian bullseye main" > /etc/apt/sources.list \
+ && echo "deb http://archive.debian.org/debian-security bullseye-security main" >> /etc/apt/sources.list \
+ && apt-get update -o Acquire::Check-Valid-Until=false \
  && apt-get install --no-install-recommends -y gosu \
  && rm -r /var/lib/apt/lists/*
 
@@ -43,7 +45,12 @@ RUN addgroup --gid $GID hedgedoc \
 
 COPY --from=build --chown=10000:10000 /build /hedgedoc
 
-COPY resources/config.json /files/
+# The container config is just a bind-mount target (the image is configured
+# via CMD_* env vars), so create it here instead of COPY: this keeps the build
+# independent of untracked files in the build context.
+RUN mkdir -p /files \
+ && printf '{}\n' > /files/config.json
+
 COPY --chown=10000:10000 resources/healthcheck.mjs /hedgedoc/healthcheck.mjs
 
 HEALTHCHECK --interval=15s CMD node healthcheck.mjs
