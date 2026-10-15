@@ -22,11 +22,11 @@ RUN pnpm build \
 ########## runtime stage ##########
 FROM node:20-bullseye
 
-LABEL org.opencontainers.image.title="HedgeDoc production image (debian)"
-LABEL org.opencontainers.image.url="https://hedgedoc.org"
-LABEL org.opencontainers.image.source="https://github.com/hedgedoc/container"
-LABEL org.opencontainers.image.documentation="https://github.com/hedgedoc/container/blob/master/README.md"
-LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.title="HedgeDoc (Fork)" \
+      org.opencontainers.image.description="Web-based Markdown notes facility" \
+      org.opencontainers.image.vendor="OdatNurd" \
+      org.opencontainers.image.licenses="AGTP-3.0" \
+      org.opencontainers.image.source="https://github.com/OdatNurd/hedgedoc"
 
 WORKDIR /hedgedoc
 ARG UID=10000
